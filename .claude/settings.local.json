@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"/Users/rayonexcell/Documents/Software RXL/\" 2>/dev/null || echo \"not found\")",
+      "Read(//Users/rayonexcell/Documents/Software RXL/**)",
+      "Bash(npm install *)",
+      "Bash(find /opt /usr/local /Users/rayonexcell -name \"npm\" -type f 2>/dev/null | head -5; find /opt /usr/local /Users/rayonexcell -name \"node\" -type f 2>/dev/null | head -5)",
+      "Read(//opt/**)",
+      "Read(//Users/rayonexcell/**)",
+      "Read(//usr/local/lib/**)",
+      "Bash(command -v node)",
+      "Bash(cat /etc/paths 2>/dev/null; echo \"---\"; cat ~/.zshrc 2>/dev/null | grep -E \"nvm|node|npm|PATH\" | head -15)",
+      "Read(//private/etc/**)",
+      "Bash(find /Library /Applications /Users/rayonexcell/Library -name \"node\" -type f 2>/dev/null | head -10)",
+      "Read(//Library/**)",
+      "WebFetch(domain:app.rxllogistics.com)",
+      "WebFetch(domain:rxllogistics.com)"
+    ]
+  }
+}

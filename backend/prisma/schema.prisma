@@ -1,0 +1,539 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String     @id @default(cuid())
+  customerCode  String?    @unique
+  email         String     @unique
+  name          String
+  firstName     String?
+  lastName      String?
+  aliasName     String?
+  phone         String?
+  phoneCarrier  String?    @default("Digicel")
+  password      String
+  role          String     @default("CUSTOMER")
+  address       String?
+  city          String?
+  country       String?
+  trn           String?
+  status        String     @default("ACTIVE")
+  idType        String?
+  idDocumentUrl String?
+  userType      String?    // display sub-role for staff accounts, e.g. "Super Administrator", "Driver" — see Role model
+  officeLocation String?
+  lastActiveAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  orders       Order[]
+  shipments    Shipment[]
+  loginEvents  LoginEvent[]
+  bizJournalEntries BizJournalEntry[]
+}
+
+model BizJournalEntry {
+  id          String   @id @default(cuid())
+  title       String
+  entryType   String   // INCOME | EXPENSE
+  currency    String   @default("JMD") // JMD | USD
+  paymentType String   @default("Cash")
+  amount      Float
+  notes       String?
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id])
+  voided      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Manifest {
+  id                 String         @id @default(cuid())
+  // Displayed as "Week" in the admin UI — the shipping week/group this manifest belongs to.
+  groupLabel         String
+  billOfLading       String
+  masterBillOfLading String         @default("")
+  reportedDateKgn    DateTime?
+  reportedDateMby    DateTime?
+  containerNumber    String
+  vessel             String
+  portOfLading       String
+  status             String         @default("PENDING") // PENDING | RECEIVED — kept for data integrity, no longer shown/editable in the admin UI
+  // A manifest can have multiple Bill of Lading detail records (one manifest often
+  // covers several shipments/containers, each needing its own paperwork).
+  billsOfLading      BillOfLading[]
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+}
+
+// Bill of Lading detail paperwork — filled in via the "+" (Add Bill of Lading) action on
+// a manifest row. Many-to-one: a single manifest can hold multiple bills of lading.
+model BillOfLading {
+  id                String   @id @default(cuid())
+  manifestId        String
+  manifest          Manifest @relation(fields: [manifestId], references: [id], onDelete: Cascade)
+  documentNumber    String   @default("")
+  dockReceiptNumber String   @default("")
+  shipper           String   @default("")
+  consignee         String   @default("")
+  notifyingParty    String   @default("")
+  blDescription     String   @default("")
+  numberOfPackages  String   @default("")
+  measurementCft    String   @default("")
+  weightLbs         String   @default("")
+  weightKgs         String   @default("")
+  charges           String   @default("")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Batch {
+  id             String     @id @default(cuid())
+  batchNumber    String     @unique
+  pickupLocation String?
+  status         String     @default("PROCESSING")
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  shipments      Shipment[]
+  warehouseReceipts WarehouseReceipt[]
+}
+
+model WarehouseReceipt {
+  id        String   @id @default(cuid())
+  label     String   // e.g. "AIR - 28 JULY 2026" or "Week 31 2026"
+  batchId   String?
+  batch     Batch?   @relation(fields: [batchId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  items     WarehouseScanItem[]
+}
+
+model WarehouseScanItem {
+  id             String   @id @default(cuid())
+  receiptId      String
+  receipt        WarehouseReceipt @relation(fields: [receiptId], references: [id])
+  customerName   String
+  trackingNumber String
+  courier        String?
+  phone          String?
+  email          String?
+  dateReceived   DateTime @default(now())
+  createdAt      DateTime @default(now())
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Bulletin {
+  id        String   @id @default(cuid())
+  title     String
+  message   String
+  status    String   @default("ACTIVE") // ACTIVE | INACTIVE
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Advertisement {
+  id        String   @id @default(cuid())
+  title     String?
+  message   String?
+  imageUrl  String?
+  status    String   @default("ACTIVE") // ACTIVE | INACTIVE
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Courier {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  logoUrl   String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Warehouse loading guide / drop-off sheet — describes a pallet/box load being sent
+// to a destination shop, with a measurement breakdown (H x W x L per item) used to
+// compute cubic feet per row and a running total. Printed as a PDF for drivers.
+model LoadingGuide {
+  id          String   @id @default(cuid())
+  drNumber    String   @unique
+  dropOffDate DateTime
+  destination String
+  dropOffBy   String   @default("RXL Logistics")
+  consignee   String
+  description String
+  // JSON array: [{ description, height, width, length, pieces, cubes }] — cubes is
+  // the row's TOTAL cubic feet (unit cubic feet x pieces), not per-unit.
+  items       String
+  totalCubes  Float    @default(0)
+  totalPieces Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// A newsletter/promotional email campaign — composed as HTML (via the admin's
+// WYSIWYG builder or raw HTML source), saved as a draft, then sent to all active
+// customers (or a single test address first).
+model Newsletter {
+  id             String    @id @default(cuid())
+  subject        String
+  htmlContent    String
+  status         String    @default("DRAFT") // DRAFT | SENT
+  recipientCount Int       @default(0)
+  sentAt         DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model LoginEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  ip        String?
+  userAgent String?
+  success   Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  slug     String    @unique
+  products Product[]
+}
+
+model Product {
+  id            String      @id @default(cuid())
+  name          String
+  description   String
+  price         Float
+  discountPrice Float?
+  image         String?
+  images        String?
+  videoUrl      String?
+  condition     String      @default("NEW") // NEW | USED
+  location      String      @default("Florida, USA") // Florida, USA | Montego Bay, Jamaica
+  categoryId    String
+  category      Category    @relation(fields: [categoryId], references: [id])
+  stock         Int         @default(0)
+  sku           String      @unique
+  weight        Float?
+  active        Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  orderItems    OrderItem[]
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id])
+  status          String      @default("PENDING")
+  subtotal        Float
+  shipping        Float       @default(0)
+  tax             Float       @default(0)
+  total           Float
+  shippingAddress String
+  paymentMethod   String      @default("card")
+  paymentStatus   String      @default("pending")
+  notes           String?
+  items           OrderItem[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float
+}
+
+model Shipment {
+  id                 String          @id @default(cuid())
+  trackingNumber     String          @unique
+  userId             String?
+  user               User?           @relation(fields: [userId], references: [id])
+  type               String
+  status             String          @default("PROCESSING")
+  origin             String
+  destination        String
+  weight             Float?
+  dimensions         String?
+  description        String?
+  estimatedDelivery  DateTime?
+  deliveredAt        DateTime?
+  events             TrackingEvent[]
+  documents          Document[]
+  items              ShipmentItem[]
+
+  // Batching
+  batchId            String?
+  batch              Batch?          @relation(fields: [batchId], references: [id])
+  itemCount          Int             @default(1)
+
+  // Batch Tally — used only for shipments with no structured ShipmentItem rows (their
+  // own trackingNumber is the thing to scan); shipments with items[] are tallied per
+  // item instead, via ShipmentItem.tallied.
+  tallied            Boolean         @default(false)
+  talliedAt          DateTime?
+
+  // Pickup / courier detail (Freight screen)
+  pickupLocation     String?
+  courierInfo        String?
+  issueStatus        String?         @default("No issue")
+  batchDescription   String?
+  itemPhotoUrl       String?
+  customerNotes      String?
+  managerComments    String?
+
+  // Automated reminder tracking
+  readyReminderSentAt DateTime?
+  storageFeeSentAt    DateTime?
+
+  // Advance charge calculator
+  custInvoiceTotal   Float           @default(0)
+  advancePercent     Float           @default(0)
+  cubeQty            Float           @default(0)
+  cubeAmount         Float           @default(0)
+  weightQty          Float           @default(0)
+  weightAmount       Float           @default(0)
+  freightCharge      Float           @default(0)
+  // Duty Fee — auto-calculated as a % of custInvoiceTotal (same pattern as advancePercent).
+  dutyPercent        Float           @default(0)
+  dutyFee            Float           @default(0)
+  expenses           String?
+  gct                Float           @default(0)
+  discountPercent    Float           @default(0)
+  totalUSD           Float           @default(0)
+  totalJMD           Float           @default(0)
+  amountPaid         Float           @default(0)
+  paymentInvoiceUrls String?
+  // Purchase invoice(s) uploaded by the customer themselves (Shipment Details page).
+  customerInvoiceUrls String?
+
+  payments           Payment[]
+
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  shipmentId      String
+  shipment        Shipment @relation(fields: [shipmentId], references: [id])
+  amount          Float
+  paymentType     String   @default("Cash")
+  referenceNumber String?
+  comment         String?
+  createdAt       DateTime @default(now())
+}
+
+model ShipmentItem {
+  id             String    @id @default(cuid())
+  shipmentId     String
+  shipment       Shipment  @relation(fields: [shipmentId], references: [id])
+  courier        String
+  trackingNumber String?
+  description    String?
+  createdAt      DateTime  @default(now())
+  // Batch Tally — admin scans each piece's tracking number against its batch to
+  // verify everything expected is physically present before it ships out.
+  tallied        Boolean   @default(false)
+  talliedAt      DateTime?
+}
+
+model TrackingEvent {
+  id          String   @id @default(cuid())
+  shipmentId  String
+  shipment    Shipment @relation(fields: [shipmentId], references: [id])
+  location    String
+  description String
+  timestamp   DateTime @default(now())
+}
+
+model Document {
+  id         String   @id @default(cuid())
+  shipmentId String
+  shipment   Shipment @relation(fields: [shipmentId], references: [id])
+  type       String
+  filename   String
+  url        String
+  createdAt  DateTime @default(now())
+}
+
+model ShippingRate {
+  id        String   @id @default(cuid())
+  type      String   @unique
+  base      Float
+  perKg     Float
+  updatedAt DateTime @updatedAt
+}
+
+model PricingPreset {
+  id         String   @id @default(cuid())
+  title      String
+  percentage Float
+  type       String   @default("discount") // discount | charge
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model CurrencySetting {
+  id        String   @id @default(cuid())
+  jmdPerUsd Float    @default(158)
+  // JMD -> USD rate, independently customizable (not derived as 1/jmdPerUsd) so a
+  // real buy/sell spread can be set. Used for all JMD -> USD conversions app-wide.
+  usdPerJmd Float    @default(0.006329)
+  updatedAt DateTime @updatedAt
+}
+
+// Sea/Air freight rate schedule — drives both the public quote calculator (routes/quotes.ts)
+// and the admin shipment freight-charge calculator (routes/shipments.ts /calc-freight).
+// Editable from Pricing Presets (admin). Singleton row, same pattern as CurrencySetting.
+model FreightRateSetting {
+  id                String   @id @default(cuid())
+  // Sea Freight — price per cubic foot (L x W x H in inches / 1728).
+  seaRatePerCubicFt Float    @default(5.25)
+  // Air Freight — tiered price per lb.
+  airRate1to10      Float    @default(3.00)
+  airRate11to30     Float    @default(2.50)
+  airRate31to50     Float    @default(2.25)
+  airRate51to100    Float    @default(2.15)
+  airRate100plus    Float    @default(2.00)
+  updatedAt         DateTime @updatedAt
+}
+
+model AutomationSetting {
+  id                      String   @id @default(cuid())
+  outstandingEnabled      Boolean  @default(true)
+  outstandingReminderDays Int      @default(2)
+  storageFeeEnabled       Boolean  @default(true)
+  storageFeeDays          Int      @default(5)
+  updatedAt               DateTime @updatedAt
+}
+
+model AppearanceSetting {
+  id                     String   @id @default(cuid())
+  menuBarColor           String   @default("#000000")
+  buttonColor            String   @default("#dc2626")
+  headingTextColor       String   @default("#ffffff")
+  bodyTextColor          String   @default("#6e6e73")
+  paneColor              String   @default("#ffffff")
+  // Overall site page background — separate from paneColor (panel/card background),
+  // this is the color showing through behind everything (e.g. cream for warmer themes).
+  pageBackgroundColor    String   @default("#ffffff")
+  // When true, every "delete" action across the admin app requires the admin to
+  // re-enter their account password (verified via /api/auth/verify-password)
+  // before the record is actually removed.
+  requirePasswordOnDelete Boolean @default(false)
+  updatedAt              DateTime @updatedAt
+}
+
+// A saved, reusable full web-design theme — a named bundle of all the color
+// fields above. Lets admins switch the entire site's look in one click, or
+// save their own custom combination for later. Distinct from AppearanceSetting,
+// which holds only the currently *active* colors.
+model SavedTheme {
+  id                  String   @id @default(cuid())
+  name                String   @unique
+  menuBarColor        String
+  buttonColor         String
+  headingTextColor    String
+  bodyTextColor       String
+  paneColor           String
+  pageBackgroundColor String   @default("#ffffff")
+  createdAt           DateTime @default(now())
+}
+
+model MobileInfoEntry {
+  id        String   @id @default(cuid())
+  title     String
+  message   String
+  status    String   @default("ACTIVE") // ACTIVE | INACTIVE
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ShipmentIssuePreset {
+  id        String   @id @default(cuid())
+  title     String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model NotificationPreset {
+  id        String   @id @default(cuid())
+  title     String
+  message   String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RegionMultiplier {
+  id         String   @id @default(cuid())
+  region     String   @unique
+  label      String
+  multiplier Float
+  updatedAt  DateTime @updatedAt
+}
+
+model Quote {
+  id          String   @id @default(cuid())
+  type        String
+  origin      String
+  destination String
+  weight      Float
+  dimensions  String?
+  description String?
+  price       Float
+  validUntil  DateTime
+  status      String   @default("pending")
+  userId      String?
+  createdAt   DateTime @default(now())
+}
+
+// --- Revenue Tracker (Profit & Loss > Batches) ---
+// A lightweight, manually-entered revenue/expense tracker nested inside the
+// Profit & Loss report — mirrors the standalone "RXL Revenue Tracker" app's
+// Batches + Monthly Totals + expense-label Settings features. Distinct from
+// the freight "Batch" model above (shipment grouping) — this "batch" is just
+// a manual revenue/expense record with a label and month.
+model RevenueBatch {
+  id              String   @id @default(cuid())
+  label           String
+  month           String // "YYYY-MM"
+  revenue         Float    @default(0)
+  collectedAmount Float    @default(0)
+  // JSON-encoded [{ label: string, amount: number }] — kept inline rather than
+  // a child table since expense line items are always read/written as a whole
+  // with their parent batch.
+  expensesJson    String   @default("[]")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// Reusable custom expense labels — appear as quick-add chips in the batch
+// form's expense list, managed from the Profit & Loss > Expense Labels tab.
+model RevenueExpenseLabel {
+  id        String   @id @default(cuid())
+  label     String   @unique
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,173 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    @apply font-sans text-gray-900 dark:bg-[var(--rxl-menubar-bg,#000000)] dark:text-white/90;
+    background-color: var(--rxl-page-bg, #ffffff);
+  }
+  /* Soft, Apple-style hairline border color used as the default for any bare
+     "border" utility across the site (inputs, dividers, plain cards). */
+  * {
+    @apply border-gray-200;
+  }
+  /* Universal dark border override — safe even on elements without a visible border,
+     since this only changes border-color, not border-width. */
+  .dark * {
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+  h1, h2, h3 {
+    @apply tracking-tight;
+  }
+  a {
+    @apply text-brand-800 dark:text-brand-300;
+  }
+}
+
+@layer components {
+  /* Hides the scrollbar on horizontally-scrolling strips (e.g. the shipment status
+     timeline on narrow screens) while keeping the element scrollable. */
+  .hide-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Frosted-glass card — Apple-style: a soft, clean hairline border (visible but never
+     harsh) plus a gentle two-layer elevation shadow (a tight contact shadow + a wider,
+     diffuse one) instead of one flat shadow. In dark mode this becomes the translucent
+     dark bento-tile look used on the admin dashboard and Shipment page. */
+  .panel-glass {
+    @apply bg-white/90 backdrop-blur-xl border border-gray-200
+      shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_28px_-14px_rgba(0,0,0,0.16)]
+      dark:bg-white/[0.06] dark:border-white/10
+      dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_2px_8px_-2px_rgba(0,0,0,0.5),0_24px_48px_-16px_rgba(0,0,0,0.7)];
+  }
+  /* Small square icon-action buttons (edit/delete pencils in admin tables) get the
+     same glass treatment instead of a flat solid fill. In light mode this needs an
+     actual gray border — a white border on a white/light panel is invisible. */
+  .icon-glass {
+    @apply backdrop-blur-sm border border-gray-200 dark:border-white/10;
+  }
+  /* Raised, frosted iOS-style glass pane — heavier blur, a soft inner highlight along the
+     top edge, and an outer glow so the pane reads as "lifted" off the background instead
+     of flat. Used for admin dashboard/bento panels in place of the plain glass tile. */
+  .glass-ios {
+    @apply relative bg-white/70 backdrop-blur-2xl border border-white/60 rounded-3xl
+      shadow-[0_8px_30px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.7)]
+      dark:bg-white/[0.08] dark:border-white/20
+      dark:shadow-[0_2px_0_rgba(255,255,255,0.06)_inset,0_-1px_0_rgba(0,0,0,0.4)_inset,0_1px_0_rgba(255,255,255,0.12)_inset,0_24px_60px_-12px_rgba(0,0,0,0.65),0_10px_28px_-8px_rgba(0,0,0,0.55),0_0_60px_-14px_rgba(120,140,255,0.4)];
+  }
+}
+
+@layer utilities {
+  /* Adds real lifted-off-the-page depth to bare card panes in dark mode, where a flat
+     `shadow-sm`/`shadow-xl` all but disappears against the near-black page background.
+     Pairs with an existing light-mode shadow already on the element — this only adds
+     the dark-mode layer. */
+  .dark-depth {
+    @apply dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_2px_8px_-2px_rgba(0,0,0,0.5),0_24px_48px_-16px_rgba(0,0,0,0.7)];
+  }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  /* Hides the native up/down spin-button "tickers" on number inputs — used on panes
+     where those stepper controls aren't wanted (e.g. Shipment Information's advance
+     charge / fee / discount inputs). */
+  .no-spinner::-webkit-inner-spin-button,
+  .no-spinner::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .no-spinner[type=number] {
+    -moz-appearance: textfield;
+  }
+  /* Royal-blue neon glow for header nav links on hover/active — matches the header bar's neon-blue theme. */
+  .text-glow-blue {
+    text-shadow: 0 0 6px rgba(43, 55, 255, 0.85), 0 0 16px rgba(43, 55, 255, 0.55), 0 0 28px rgba(43, 55, 255, 0.35);
+  }
+  /* Bright white neon glow — header nav links on hover. */
+  .text-glow-white {
+    text-shadow: 0 0 4px rgba(255, 255, 255, 0.9), 0 0 10px rgba(255, 255, 255, 0.7), 0 0 18px rgba(255, 255, 255, 0.4);
+  }
+  /* Dark royal-blue neon glow — the currently-active header nav link (page heading). */
+  .text-glow-royal-blue {
+    text-shadow: 0 0 6px rgba(20, 20, 140, 0.95), 0 0 16px rgba(20, 20, 140, 0.75), 0 0 30px rgba(30, 30, 180, 0.55);
+  }
+  /* Neon purple / green text glow — admin dashboard stat highlights. */
+  .text-glow-purple {
+    text-shadow: 0 0 6px rgba(168, 85, 247, 0.85), 0 0 16px rgba(168, 85, 247, 0.55), 0 0 28px rgba(168, 85, 247, 0.35);
+  }
+  .text-glow-green {
+    text-shadow: 0 0 6px rgba(52, 211, 153, 0.85), 0 0 16px rgba(52, 211, 153, 0.55), 0 0 28px rgba(52, 211, 153, 0.35);
+  }
+  /* Neon orange text glow — Freight Processing status. */
+  .text-glow-orange {
+    text-shadow: 0 0 6px rgba(249, 115, 22, 0.85), 0 0 16px rgba(249, 115, 22, 0.55), 0 0 28px rgba(249, 115, 22, 0.35);
+  }
+  /* Vibrant red text glow — At Ports In Jamaica status. */
+  .text-glow-red {
+    text-shadow: 0 0 6px rgba(239, 68, 68, 0.85), 0 0 16px rgba(239, 68, 68, 0.55), 0 0 28px rgba(239, 68, 68, 0.35);
+  }
+  /* Extra-vibrant white glow — used for admin dashboard dark-mode stat numbers. */
+  .text-glow-white-xl {
+    text-shadow: 0 0 6px rgba(255, 255, 255, 0.95), 0 0 16px rgba(255, 255, 255, 0.75), 0 0 32px rgba(255, 255, 255, 0.5);
+  }
+  /* Neon-bordered glowing "pill" box around the currently-active header nav
+     link — an outlined, glowing capsule (rounded border + layered blue glow,
+     including a soft inner glow) replacing the plain text glow for a fuller,
+     more prominent highlight. Used only for the active desktop nav item. */
+  .nav-pill-glow {
+    @apply relative inline-flex items-center rounded-2xl border-2 border-[#3355ff]
+      px-6 py-2.5
+      shadow-[0_0_8px_rgba(51,85,255,0.95),0_0_20px_rgba(51,85,255,0.7),0_0_38px_rgba(51,85,255,0.4),inset_0_0_16px_rgba(51,85,255,0.3)];
+  }
+
+  /* Neon halo box-shadows for the small icon badges on admin dashboard stat widgets.
+     Dark mode gets a noticeably more vibrant, wider halo than light mode. */
+  .badge-glow-blue { @apply shadow-[0_0_0_1px_rgba(56,132,255,0.45),0_0_18px_rgba(56,132,255,0.55),0_4px_14px_rgba(56,132,255,0.35)] dark:shadow-[0_0_0_1.5px_rgba(80,150,255,0.8),0_0_30px_rgba(56,132,255,0.9),0_0_55px_-8px_rgba(56,132,255,0.75),0_6px_18px_rgba(56,132,255,0.5)]; }
+  .badge-glow-purple { @apply shadow-[0_0_0_1px_rgba(168,85,247,0.45),0_0_18px_rgba(168,85,247,0.55),0_4px_14px_rgba(168,85,247,0.35)] dark:shadow-[0_0_0_1.5px_rgba(192,132,252,0.8),0_0_30px_rgba(168,85,247,0.9),0_0_55px_-8px_rgba(168,85,247,0.75),0_6px_18px_rgba(168,85,247,0.5)]; }
+  .badge-glow-green { @apply shadow-[0_0_0_1px_rgba(52,211,153,0.45),0_0_18px_rgba(52,211,153,0.55),0_4px_14px_rgba(52,211,153,0.35)] dark:shadow-[0_0_0_1.5px_rgba(74,222,128,0.8),0_0_30px_rgba(52,211,153,0.9),0_0_55px_-8px_rgba(52,211,153,0.75),0_6px_18px_rgba(52,211,153,0.5)]; }
+  .badge-glow-white { @apply shadow-[0_0_0_1px_rgba(255,255,255,0.55),0_0_18px_rgba(255,255,255,0.45),0_4px_14px_rgba(255,255,255,0.25)] dark:shadow-[0_0_0_1.5px_rgba(255,255,255,0.9),0_0_30px_rgba(255,255,255,0.8),0_0_55px_-8px_rgba(255,255,255,0.6),0_6px_18px_rgba(255,255,255,0.4)]; }
+
+  /* "Shop Now" CTA overlaid on the FNDS Shop hero banner — a glossy, convex 3D button
+     in a vibrant royal blue with bright white text, standing in for (and fully
+     covering) the flat button baked into the banner artwork underneath it. Layered
+     box-shadow: inset top highlight + inset bottom shade for a raised "puck" look
+     (kept blue-tinted rather than black, so the color stays vivid instead of
+     muddying), a bright blue ambient glow, and a grounded drop shadow for elevation.
+     Hover lifts + brightens the glow; active presses flat. */
+  .shop-now-btn {
+    @apply bg-gradient-to-b from-[#3f5bff] via-[#2a44e6] to-[#1c2fbe]
+      shadow-[inset_0_1.5px_0_rgba(255,255,255,0.5),inset_0_-3px_6px_rgba(10,20,90,0.4),0_0_28px_-2px_rgba(70,110,255,0.75),0_10px_22px_-8px_rgba(20,30,120,0.55),0_3px_6px_rgba(10,15,80,0.4)]
+      ring-1 ring-white/15
+      transition-all duration-300 ease-out
+      motion-safe:animate-[shop-now-pulse_2.8s_ease-in-out_infinite];
+  }
+  .shop-now-btn:hover {
+    @apply -translate-y-0.5 scale-[1.04]
+      shadow-[inset_0_1.5px_0_rgba(255,255,255,0.65),inset_0_-3px_6px_rgba(10,20,90,0.35),0_0_44px_3px_rgba(90,130,255,0.9),0_16px_30px_-8px_rgba(20,30,120,0.65),0_4px_8px_rgba(10,15,80,0.45)];
+  }
+  .shop-now-btn:active {
+    @apply translate-y-0 scale-[0.97]
+      shadow-[inset_0_1px_3px_rgba(10,20,90,0.55),0_0_18px_-2px_rgba(70,110,255,0.6)];
+  }
+}
+
+/* Subtle "breathing" brightness pulse for the Shop Now CTA — reads as a premium,
+   alive button without being distracting. Gated behind motion-safe: above, so it's
+   automatically skipped for prefers-reduced-motion users. */
+@keyframes shop-now-pulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.15); }
+}
